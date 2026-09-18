@@ -20,6 +20,7 @@ import kotlinx.coroutines.runBlocking
 import org.tasks.R
 import org.tasks.analytics.Firebase
 import org.tasks.caldav.TasksAccountDataRepository
+import org.tasks.compose.AddAccountDestination
 import org.tasks.compose.HomeDestination
 import org.tasks.compose.SubscriptionOnboardingDestination
 import org.tasks.compose.WelcomeDestination
@@ -93,7 +94,7 @@ class MainActivityViewModel @Inject constructor(
                 if (hasAccount == null) {
                     return OnboardingRouting(state)
                 }
-                val destination = if (hasAccount) HomeDestination else WelcomeDestination
+                val destination = if (hasAccount) HomeDestination else AddAccountDestination
                 return OnboardingRouting(
                     state = state.copy(
                         wasInCloudOnboarding = false,
@@ -109,7 +110,7 @@ class MainActivityViewModel @Inject constructor(
                     if (!state.wasInOnboarding) {
                         OnboardingRouting(
                             state = state.copy(wasInOnboarding = true),
-                            navigation = OnboardingNavigation.ClearBackStack(WelcomeDestination),
+                            navigation = OnboardingNavigation.ClearBackStack(AddAccountDestination),
                             ready = true,
                         )
                     } else {
