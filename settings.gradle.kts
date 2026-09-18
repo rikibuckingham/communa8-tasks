@@ -1,4 +1,4 @@
-rootProject.name = "Communa8 Tasks"
+rootProject.name = "Communa8Tasks"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
