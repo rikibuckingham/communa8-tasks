@@ -119,7 +119,7 @@ android {
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
 
     defaultConfig {
-        applicationId = "org.tasks"
+        applicationId = "org.communa8.tasks"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = libs.versions.versionCode.get().toInt()
@@ -169,7 +169,7 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "tasks-org"
+            packageName = "communa8-tasks"
             packageVersion = libs.versions.versionName.get().let {
                 if (it.count { c -> c == '.' } < 2) "$it.0" else it
             }
