@@ -158,7 +158,7 @@ class CaldavSignInActivity : ComponentActivity() {
                 val credentials = pollForCredentials(session)
 
                 stage = Communa8LoginStage.SAVING
-                viewModel.setUrl(credentials.server)
+                viewModel.setUrl(credentials.server.toNextcloudDavUrl())
                 viewModel.setUsername(credentials.loginName)
                 viewModel.setPassword(credentials.appPassword)
                 viewModel.setServerType(CaldavAccount.SERVER_NEXTCLOUD)
@@ -246,6 +246,9 @@ class CaldavSignInActivity : ComponentActivity() {
         val loginName: String,
         val appPassword: String,
     )
+
+    private fun String.toNextcloudDavUrl(): String =
+        trimEnd('/') + "/remote.php/dav"
 
     companion object {
         private const val COMMUNA8_SERVER = "https://app.communa8.org"
