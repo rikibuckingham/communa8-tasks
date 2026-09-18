@@ -75,7 +75,7 @@ class AddAccountActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Communa8ConnectScreen(
+fun Communa8ConnectScreen(
     onBack: () -> Unit,
     onSignIn: () -> Unit,
 ) {
