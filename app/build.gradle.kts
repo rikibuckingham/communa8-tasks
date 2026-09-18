@@ -144,6 +144,14 @@ android {
     namespace = "org.tasks"
 }
 
+// The Communa8 Generic flavor intentionally uses the no-Firebase implementation.
+// Do not process the upstream google-services.json for org.communa8.tasks.
+tasks.matching {
+    it.name.startsWith("processGeneric") && it.name.endsWith("GoogleServices")
+}.configureEach {
+    enabled = false
+}
+
 configurations.all {
     exclude(group = "org.apache.httpcomponents")
     exclude(group = "org.checkerframework")
