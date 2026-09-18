@@ -61,6 +61,14 @@ import org.tasks.themes.Theme
 import java.io.IOException
 import javax.inject.Inject
 
+private enum class Communa8LoginStage {
+    READY,
+    STARTING,
+    WAITING,
+    SAVING,
+    ERROR,
+}
+
 @AndroidEntryPoint
 class CaldavSignInActivity : ComponentActivity() {
 
@@ -70,7 +78,7 @@ class CaldavSignInActivity : ComponentActivity() {
     private val httpClient = OkHttpClient()
     private var loginJob: Job? = null
 
-    private var stage by mutableStateOf(LoginStage.READY)
+    private var stage by mutableStateOf(Communa8LoginStage.READY)
     private var flowError by mutableStateOf<String?>(null)
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -86,8 +94,8 @@ class CaldavSignInActivity : ComponentActivity() {
                 val accountState by viewModel.state.collectAsState()
 
                 LaunchedEffect(accountState.snackbar) {
-                    if (accountState.snackbar != null && stage == LoginStage.SAVING) {
-                        stage = LoginStage.ERROR
+                    if (accountState.snackbar != null && stage == Communa8LoginStage.SAVING) {
+                        stage = Communa8LoginStage.ERROR
                     }
                 }
 
@@ -137,7 +145,7 @@ class CaldavSignInActivity : ComponentActivity() {
         viewModel.dismissSnackbar()
         loginJob = lifecycleScope.launch {
             try {
-                stage = LoginStage.STARTING
+                stage = Communa8LoginStage.STARTING
                 val session = withContext(Dispatchers.IO) { createLoginSession() }
 
                 try {
@@ -146,10 +154,10 @@ class CaldavSignInActivity : ComponentActivity() {
                     throw IOException(getString(R.string.communa8_no_browser), e)
                 }
 
-                stage = LoginStage.WAITING
+                stage = Communa8LoginStage.WAITING
                 val credentials = pollForCredentials(session)
 
-                stage = LoginStage.SAVING
+                stage = Communa8LoginStage.SAVING
                 viewModel.setUrl(credentials.server)
                 viewModel.setUsername(credentials.loginName)
                 viewModel.setPassword(credentials.appPassword)
@@ -162,7 +170,7 @@ class CaldavSignInActivity : ComponentActivity() {
                 throw e
             } catch (e: Exception) {
                 flowError = e.message ?: getString(R.string.communa8_login_failed)
-                stage = LoginStage.ERROR
+                stage = Communa8LoginStage.ERROR
             }
         }
     }
@@ -239,14 +247,6 @@ class CaldavSignInActivity : ComponentActivity() {
         val appPassword: String,
     )
 
-    private enum class LoginStage {
-        READY,
-        STARTING,
-        WAITING,
-        SAVING,
-        ERROR,
-    }
-
     companion object {
         private const val COMMUNA8_SERVER = "https://app.communa8.org"
         private const val USER_AGENT = "Communa8 Tasks Android"
@@ -258,7 +258,7 @@ class CaldavSignInActivity : ComponentActivity() {
 @Composable
 private fun Communa8LoginScreen(
     modifier: Modifier = Modifier,
-    stage: CaldavSignInActivity.LoginStage,
+    stage: Communa8LoginStage,
     error: String?,
     onStart: () -> Unit,
     onCancel: () -> Unit,
@@ -284,7 +284,7 @@ private fun Communa8LoginScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             when (stage) {
-                CaldavSignInActivity.LoginStage.READY -> {
+                Communa8LoginStage.READY -> {
                     Text(
                         text = stringResource(R.string.communa8_login_description),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -299,17 +299,17 @@ private fun Communa8LoginScreen(
                     }
                 }
 
-                CaldavSignInActivity.LoginStage.STARTING,
-                CaldavSignInActivity.LoginStage.WAITING,
-                CaldavSignInActivity.LoginStage.SAVING -> {
+                Communa8LoginStage.STARTING,
+                Communa8LoginStage.WAITING,
+                Communa8LoginStage.SAVING -> {
                     CircularProgressIndicator()
                     Spacer(modifier = Modifier.height(20.dp))
                     Text(
                         text = stringResource(
                             when (stage) {
-                                CaldavSignInActivity.LoginStage.STARTING ->
+                                Communa8LoginStage.STARTING ->
                                     R.string.communa8_login_starting
-                                CaldavSignInActivity.LoginStage.WAITING ->
+                                Communa8LoginStage.WAITING ->
                                     R.string.communa8_login_waiting
                                 else ->
                                     R.string.communa8_login_saving
@@ -324,7 +324,7 @@ private fun Communa8LoginScreen(
                     }
                 }
 
-                CaldavSignInActivity.LoginStage.ERROR -> {
+                Communa8LoginStage.ERROR -> {
                     Text(
                         text = error ?: stringResource(R.string.communa8_login_failed),
                         color = MaterialTheme.colorScheme.error,
