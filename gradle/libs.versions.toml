@@ -1,5 +1,5 @@
 [versions]
-applicationId = "org.tasks"
+applicationId = "org.communa8.tasks"
 agp = "9.4.0"
 android-compileSdk = "37"
 android-minSdk = "26"
