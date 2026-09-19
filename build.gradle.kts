@@ -32,13 +32,14 @@ tasks.getByName<Wrapper>("wrapper") {
 allprojects {
     tasks.withType<KotlinCompile>().configureEach {
         compilerOptions {
-            val composeReports = project.properties["composeMetrics"] ?: project.buildDir.absolutePath
-            freeCompilerArgs.addAll(
-                "-P",
-                "plugin:androidx.compose.compiler.plugins.kotlin:metricsDestination=" + composeReports + "/compose-metrics",
-                "-P",
-                "plugin:androidx.compose.compiler.plugins.kotlin:reportsDestination=" + composeReports + "/compose-metrics",
-            )
+            project.properties["composeMetrics"]?.let { composeReports ->
+                freeCompilerArgs.addAll(
+                    "-P",
+                    "plugin:androidx.compose.compiler.plugins.kotlin:metricsDestination=" + composeReports + "/compose-metrics",
+                    "-P",
+                    "plugin:androidx.compose.compiler.plugins.kotlin:reportsDestination=" + composeReports + "/compose-metrics",
+                )
+            }
         }
     }
 }

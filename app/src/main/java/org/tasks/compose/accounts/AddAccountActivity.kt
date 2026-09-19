@@ -1,6 +1,5 @@
- package org.tasks.compose.accounts
+package org.tasks.compose.accounts
 
-import org.tasks.PlatformConfiguration
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
@@ -8,97 +7,50 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.todoroo.astrid.gtasks.auth.GtasksLoginActivity
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import dagger.hilt.android.AndroidEntryPoint
 import org.tasks.R
-import org.tasks.analytics.Firebase
-import org.tasks.auth.SignInActivity
-import org.tasks.billing.Inventory
-import org.tasks.billing.PurchaseActivity
-import org.tasks.billing.PurchaseActivityViewModel.Companion.EXTRA_FEATURE
-import org.tasks.billing.PurchaseActivityViewModel.Companion.EXTRA_NAME_YOUR_PRICE
-import org.tasks.billing.PurchaseActivityViewModel.Companion.EXTRA_SOURCE
 import org.tasks.caldav.CaldavSignInActivity
-import org.tasks.etebase.EtebaseSignInActivity
-import org.tasks.extensions.Context.openUri
-import org.tasks.preferences.TasksPreferences
-import org.tasks.sync.microsoft.MicrosoftSignInViewModel
+import org.tasks.compose.components.SymbolIcon
+import org.tasks.themes.TasksIcons
 import org.tasks.themes.TasksSettingsTheme
 import org.tasks.themes.Theme
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class AddAccountActivity : ComponentActivity() {
+
     @Inject lateinit var theme: Theme
-    @Inject lateinit var inventory: Inventory
-    @Inject lateinit var firebase: Firebase
-    @Inject lateinit var tasksPreferences: TasksPreferences
-    @Inject lateinit var configuration: PlatformConfiguration
 
-    private val viewModel: AddAccountViewModel by viewModels()
-    private val microsoftVM: MicrosoftSignInViewModel by viewModels()
-
-    private var pendingPlatform: Platform? = null
-
-    private val purchaseLauncher = registerForActivityResult(
+    private val signInLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            pendingPlatform?.let { platform ->
-                pendingPlatform = null
-                when (platform) {
-                    Platform.TASKS_ORG -> finish()
-                    Platform.CALDAV,
-                    Platform.ETEBASE -> doSignIn(platform)
-                    Platform.DAVX5 -> doOpenUrl(platform)
-                    else -> {}
-                }
-            }
-        } else {
-            pendingPlatform = null
+            setResult(Activity.RESULT_OK)
+            finish()
         }
-    }
-
-    private val syncLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode != Activity.RESULT_OK) {
-            result.data
-                ?.getStringExtra(GtasksLoginActivity.EXTRA_ERROR)
-                ?.let { /* ignore error, user can try again */ }
-        }
-    }
-
-    private fun doSignIn(platform: Platform) {
-        when (platform) {
-            Platform.TASKS_ORG ->
-                syncLauncher.launch(Intent(this, SignInActivity::class.java))
-            Platform.GOOGLE_TASKS ->
-                syncLauncher.launch(Intent(this, GtasksLoginActivity::class.java))
-            Platform.MICROSOFT ->
-                microsoftVM.signIn(this)
-            Platform.CALDAV ->
-                syncLauncher.launch(Intent(this, CaldavSignInActivity::class.java))
-            Platform.ETEBASE ->
-                syncLauncher.launch(Intent(this, EtebaseSignInActivity::class.java))
-            else -> throw IllegalArgumentException()
-        }
-    }
-
-    private fun doOpenUrl(platform: Platform) = openUrl(platform)
-
-    private fun requirePurchase(platform: Platform, nameYourPrice: Boolean = true) {
-        pendingPlatform = platform
-        purchaseLauncher.launch(
-            Intent(this, PurchaseActivity::class.java)
-                .putExtra(EXTRA_NAME_YOUR_PRICE, nameYourPrice)
-                .putExtra(EXTRA_FEATURE, platform.featureTitle)
-                .putExtra(EXTRA_SOURCE, platform.name)
-        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -106,63 +58,80 @@ class AddAccountActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val currentTosVersion = firebase.getTosVersion()
-            val acceptedTosVersion by tasksPreferences
-                .flow(TasksPreferences.acceptedTosVersion, 0)
-                .collectAsStateWithLifecycle(0)
-            LaunchedEffect(Unit) {
-                viewModel.accountAdded.collect {
-                    setResult(Activity.RESULT_OK)
-                    finish()
-                }
-            }
             TasksSettingsTheme(
                 theme = theme.themeBase.index,
                 primary = theme.themeColor.primaryColor,
             ) {
-                AddAccountScreenWrapper(
-                    configuration = configuration,
-                    hasTasksAccount = viewModel.hasTasksAccount,
-                    hasPro = viewModel.hasPro,
-                    needsConsent = acceptedTosVersion < currentTosVersion,
+                Communa8ConnectScreen(
                     onBack = { finish() },
-                    signIn = { platform ->
-                        firebase.logEvent(
-                            R.string.event_add_account,
-                            R.string.param_source to "settings",
-                            R.string.param_selection to platform
-                        )
-                        when (platform) {
-                            Platform.TASKS_ORG -> {
-                                if (inventory.hasTasksSubscription) doSignIn(platform) else requirePurchase(platform, nameYourPrice = false)
-                            }
-                            Platform.CALDAV, Platform.ETEBASE -> {
-                                if (inventory.hasPro) doSignIn(platform) else requirePurchase(platform)
-                            }
-                            else -> doSignIn(platform)
-                        }
-                    },
-                    openUrl = { platform ->
-                        firebase.logEvent(
-                            R.string.event_add_account,
-                            R.string.param_source to "settings",
-                            R.string.param_selection to platform.name
-                        )
-                        when (platform) {
-                            Platform.DAVX5 -> {
-                                if (inventory.hasPro) doOpenUrl(platform) else requirePurchase(platform)
-                            }
-                            else -> doOpenUrl(platform)
-                        }
-                    },
-                    openLegalUrl = { openUri(it) },
-                    onConsent = {
-                        tasksPreferences.set(TasksPreferences.acceptedTosVersion, currentTosVersion)
-                    },
-                    onNameYourPriceInfo = {
-                        firebase.logEvent(R.string.event_onboarding_name_your_price)
+                    onSignIn = {
+                        signInLauncher.launch(Intent(this, CaldavSignInActivity::class.java))
                     },
                 )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun Communa8ConnectScreen(
+    onBack: () -> Unit,
+    onSignIn: () -> Unit,
+) {
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = {
+            TopAppBar(
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        SymbolIcon(
+                            name = TasksIcons.ARROW_BACK,
+                            contentDescription = stringResource(R.string.back),
+                        )
+                    }
+                },
+                title = { Text(stringResource(R.string.communa8_connect_title)) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
+            )
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 480.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = stringResource(R.string.communa8_connect_heading),
+                    style = MaterialTheme.typography.headlineSmall,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.communa8_connect_description),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.height(28.dp))
+                Button(
+                    onClick = onSignIn,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.communa8_sign_in))
+                }
             }
         }
     }
