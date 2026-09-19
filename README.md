@@ -118,7 +118,7 @@ Before treating Android as release-ready:
 - review backup/export and privacy-facing text
 - produce signed release builds and release metadata
 
-The codebase already contains a Compose Multiplatform desktop target. A Communa8 Tasks Windows application is a planned follow-on once the Android experience is sufficiently polished.
+The codebase already contains multiplatform/iOS and desktop foundations. Communa8 Tasks for **iPhone/iPad and Windows** are required follow-on targets once the Android experience is sufficiently polished. Shared logic/UI should be reused where practical while keeping platform-specific authentication, notifications, secure storage, and packaging in the appropriate platform source sets.
 
 A future Android enhancement may use Nextcloud's official Android Single Sign-On mechanism when a compatible Communa8/Nextcloud Files account already exists on the device. The standalone in-app login remains important so Communa8 Tasks does not depend on another app being installed.
 
