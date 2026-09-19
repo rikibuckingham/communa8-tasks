@@ -127,8 +127,18 @@ Automatic heavy GitHub Actions matrices are disabled on the default branch. The 
 - [ ] signed release configuration
 - [ ] release/versioning documentation
 
-## Desktop
+## iOS and desktop
 
-The upstream project contains a Compose Multiplatform desktop target. Communa8 Tasks for Windows is planned after the Android core is stable.
+Communa8 Tasks must ultimately ship on **Android, iPhone/iPad, and Windows**.
 
-The desktop app should use the same Communa8/Nextcloud data model and direct server synchronization, not Google or third-party synchronization services.
+The upstream project already contains multiplatform/iOS and desktop foundations. The Communa8 work should preserve as much shared task, sync, model and UI code as practical.
+
+Platform-specific responsibilities should remain isolated:
+
+- Android: Communa8 login WebView/SSO option, Android notifications, encrypted credential integration and packaging
+- iOS: Nextcloud Login Flow using an iOS one-time web authentication surface, Keychain-backed credential storage, Apple notification/background APIs and Xcode packaging/signing
+- Windows: desktop credential storage, notification integration and native packaging
+
+All platforms should use the same Communa8/Nextcloud data model and direct DAV synchronization rather than Google or third-party synchronization services.
+
+A macOS host with Xcode is required to produce and test the iOS application.
