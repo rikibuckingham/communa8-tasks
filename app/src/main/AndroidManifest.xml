@@ -736,9 +736,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/communa8_tasks_grey"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.BlueGrey"
-      android:roundIcon="@mipmap/communa8_tasks_grey"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -753,9 +753,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_dark_grey"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.DarkGrey"
-      android:roundIcon="@mipmap/ic_launcher_dark_grey"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -770,9 +770,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_red"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.Red"
-      android:roundIcon="@mipmap/ic_launcher_red"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -787,9 +787,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_pink"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.Pink"
-      android:roundIcon="@mipmap/ic_launcher_pink"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -804,9 +804,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_purple"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.Purple"
-      android:roundIcon="@mipmap/ic_launcher_purple"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -821,9 +821,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_deep_purple"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.DeepPurple"
-      android:roundIcon="@mipmap/ic_launcher_deep_purple"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -838,9 +838,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_indigo"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.Indigo"
-      android:roundIcon="@mipmap/ic_launcher_indigo"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -855,9 +855,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_light_blue"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.LightBlue"
-      android:roundIcon="@mipmap/ic_launcher_light_blue"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -872,9 +872,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_cyan"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.Cyan"
-      android:roundIcon="@mipmap/ic_launcher_cyan"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -889,9 +889,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_teal"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.Teal"
-      android:roundIcon="@mipmap/ic_launcher_teal"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -906,9 +906,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_green"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.Green"
-      android:roundIcon="@mipmap/ic_launcher_green"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -923,9 +923,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_light_green"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.LightGreen"
-      android:roundIcon="@mipmap/ic_launcher_light_green"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -940,9 +940,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_lime"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.Lime"
-      android:roundIcon="@mipmap/ic_launcher_lime"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -957,9 +957,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_yellow"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.Yellow"
-      android:roundIcon="@mipmap/ic_launcher_yellow"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -974,9 +974,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_amber"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.Amber"
-      android:roundIcon="@mipmap/ic_launcher_amber"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -991,9 +991,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_orange"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.Orange"
-      android:roundIcon="@mipmap/ic_launcher_orange"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -1008,9 +1008,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_deep_orange"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.DeepOrange"
-      android:roundIcon="@mipmap/ic_launcher_deep_orange"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -1025,9 +1025,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_brown"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.Brown"
-      android:roundIcon="@mipmap/ic_launcher_brown"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
@@ -1042,9 +1042,9 @@
 
     <activity-alias
       android:enabled="false"
-      android:icon="@mipmap/ic_launcher_grey"
+      android:icon="@mipmap/communa8_tasks"
       android:name="com.todoroo.astrid.activity.TaskListActivity.Grey"
-      android:roundIcon="@mipmap/ic_launcher_grey"
+      android:roundIcon="@mipmap/communa8_tasks"
       android:exported="true"
       android:targetActivity="com.todoroo.astrid.activity.MainActivity">
       <intent-filter>
