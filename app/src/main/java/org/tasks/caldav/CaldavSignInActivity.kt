@@ -1,10 +1,14 @@
 package org.tasks.caldav
 
+import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.ActivityNotFoundException
-import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.webkit.CookieManager
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.webkit.WebViewDatabase
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -25,7 +29,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -39,18 +42,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.lifecycleScope
+import androidx.compose.ui.viewinterop.AndroidView
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.FormBody
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import org.json.JSONObject
 import org.tasks.R
 import org.tasks.compose.components.SymbolIcon
 import org.tasks.data.entity.CaldavAccount
@@ -58,13 +51,13 @@ import org.tasks.preferences.fragments.CaldavAccountSettingsHiltViewModel
 import org.tasks.themes.TasksIcons
 import org.tasks.themes.TasksSettingsTheme
 import org.tasks.themes.Theme
-import java.io.IOException
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
+import java.util.Locale
 import javax.inject.Inject
 
 private enum class Communa8LoginStage {
-    READY,
-    STARTING,
-    WAITING,
+    LOGIN,
     SAVING,
     ERROR,
 }
@@ -75,11 +68,10 @@ class CaldavSignInActivity : ComponentActivity() {
     @Inject lateinit var theme: Theme
 
     private val viewModel: CaldavAccountSettingsHiltViewModel by viewModels()
-    private val httpClient = OkHttpClient()
-    private var loginJob: Job? = null
 
-    private var stage by mutableStateOf(Communa8LoginStage.READY)
+    private var stage by mutableStateOf(Communa8LoginStage.LOGIN)
     private var flowError by mutableStateOf<String?>(null)
+    private var loginWebView: WebView? = null
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,6 +87,7 @@ class CaldavSignInActivity : ComponentActivity() {
 
                 LaunchedEffect(accountState.snackbar) {
                     if (accountState.snackbar != null && stage == Communa8LoginStage.SAVING) {
+                        flowError = accountState.snackbar
                         stage = Communa8LoginStage.ERROR
                     }
                 }
@@ -119,127 +112,169 @@ class CaldavSignInActivity : ComponentActivity() {
                         )
                     },
                 ) { padding ->
-                    Communa8LoginScreen(
-                        modifier = Modifier.padding(padding),
-                        stage = stage,
-                        error = flowError ?: accountState.snackbar,
-                        onStart = ::startLogin,
-                        onCancel = { finish() },
-                    )
+                    when (stage) {
+                        Communa8LoginStage.LOGIN -> {
+                            Communa8LoginWebView(
+                                modifier = Modifier
+                                    .padding(padding)
+                                    .fillMaxSize(),
+                            )
+                        }
+
+                        Communa8LoginStage.SAVING -> {
+                            Communa8StatusScreen(
+                                modifier = Modifier.padding(padding),
+                                saving = true,
+                                error = null,
+                                onRetry = ::retryLogin,
+                            )
+                        }
+
+                        Communa8LoginStage.ERROR -> {
+                            Communa8StatusScreen(
+                                modifier = Modifier.padding(padding),
+                                saving = false,
+                                error = flowError ?: accountState.snackbar,
+                                onRetry = ::retryLogin,
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 
     override fun onDestroy() {
-        loginJob?.cancel()
-        httpClient.dispatcher.executorService.shutdown()
-        httpClient.connectionPool.evictAll()
+        destroyLoginWebView()
         super.onDestroy()
     }
 
-    private fun startLogin() {
-        if (loginJob?.isActive == true) return
-
+    private fun retryLogin() {
         flowError = null
         viewModel.dismissSnackbar()
-        loginJob = lifecycleScope.launch {
-            try {
-                stage = Communa8LoginStage.STARTING
-                val session = withContext(Dispatchers.IO) { createLoginSession() }
-
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(session.loginUrl)))
-                } catch (e: ActivityNotFoundException) {
-                    throw IOException(getString(R.string.communa8_no_browser), e)
-                }
-
-                stage = Communa8LoginStage.WAITING
-                val credentials = pollForCredentials(session)
-
-                stage = Communa8LoginStage.SAVING
-                viewModel.setUrl(credentials.server.toNextcloudDavUrl())
-                viewModel.setUsername(credentials.loginName)
-                viewModel.setPassword(credentials.appPassword)
-                viewModel.setServerType(CaldavAccount.SERVER_NEXTCLOUD)
-                viewModel.save {
-                    setResult(Activity.RESULT_OK)
-                    finish()
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                flowError = e.message ?: getString(R.string.communa8_login_failed)
-                stage = Communa8LoginStage.ERROR
-            }
-        }
+        stage = Communa8LoginStage.LOGIN
     }
 
-    private fun createLoginSession(): LoginSession {
-        val request = Request.Builder()
-            .url("$COMMUNA8_SERVER/index.php/login/v2")
-            .header("User-Agent", USER_AGENT)
-            .post(FormBody.Builder().build())
-            .build()
+    @SuppressLint("SetJavaScriptEnabled")
+    @Composable
+    private fun Communa8LoginWebView(
+        modifier: Modifier = Modifier,
+    ) {
+        AndroidView(
+            modifier = modifier,
+            factory = { context ->
+                WebView(context).also { webView ->
+                    loginWebView = webView
 
-        httpClient.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw IOException(
-                    getString(R.string.communa8_login_http_error, response.code)
-                )
-            }
+                    webView.settings.javaScriptEnabled = true
+                    webView.settings.domStorageEnabled = true
+                    webView.settings.saveFormData = false
+                    webView.settings.userAgentString = USER_AGENT
 
-            val body = response.body.string()
-            val json = JSONObject(body)
-            val poll = json.getJSONObject("poll")
-            return LoginSession(
-                loginUrl = json.getString("login"),
-                token = poll.getString("token"),
-                pollEndpoint = poll.getString("endpoint"),
-            )
-        }
-    }
+                    val cookieManager = CookieManager.getInstance()
+                    cookieManager.setAcceptCookie(true)
+                    cookieManager.setAcceptThirdPartyCookies(webView, false)
 
-    private suspend fun pollForCredentials(session: LoginSession): LoginCredentials =
-        withContext(Dispatchers.IO) {
-            repeat(POLL_ATTEMPTS) {
-                val body = FormBody.Builder()
-                    .add("token", session.token)
-                    .build()
-                val request = Request.Builder()
-                    .url(session.pollEndpoint)
-                    .header("User-Agent", USER_AGENT)
-                    .post(body)
-                    .build()
+                    webView.webViewClient = object : WebViewClient() {
+                        override fun shouldOverrideUrlLoading(
+                            view: WebView?,
+                            request: WebResourceRequest?,
+                        ): Boolean = handlePossibleLoginCallback(request?.url?.toString())
 
-                httpClient.newCall(request).execute().use { response ->
-                    when (response.code) {
-                        200 -> {
-                            val json = JSONObject(response.body.string())
-                            return@withContext LoginCredentials(
-                                server = json.getString("server"),
-                                loginName = json.getString("loginName"),
-                                appPassword = json.getString("appPassword"),
+                        @Deprecated("Deprecated in Android")
+                        override fun shouldOverrideUrlLoading(
+                            view: WebView?,
+                            url: String?,
+                        ): Boolean = handlePossibleLoginCallback(url)
+                    }
+
+                    // Login Flow must start with a clean, one-time browser session.
+                    cookieManager.removeAllCookies {
+                        cookieManager.flush()
+                        if (stage == Communa8LoginStage.LOGIN && loginWebView === webView) {
+                            val headers = mapOf(
+                                "OCS-APIREQUEST" to "true",
+                                "Accept-Language" to Locale.getDefault().toLanguageTag(),
                             )
+                            webView.loadUrl(COMMUNA8_LOGIN_URL, headers)
                         }
-                        404 -> Unit
-                        else -> throw IOException(
-                            getString(R.string.communa8_login_http_error, response.code)
-                        )
                     }
                 }
+            },
+        )
+    }
 
-                delay(POLL_INTERVAL_MS)
-            }
-
-            throw IOException(getString(R.string.communa8_login_timed_out))
+    private fun handlePossibleLoginCallback(url: String?): Boolean {
+        if (url.isNullOrBlank() || !url.startsWith(LOGIN_CALLBACK_PREFIX, ignoreCase = true)) {
+            return false
         }
 
-    private data class LoginSession(
-        val loginUrl: String,
-        val token: String,
-        val pollEndpoint: String,
-    )
+        try {
+            val credentials = parseLoginCallback(url)
+            val normalizedServer = credentials.server.withHttpsIfMissing()
+            val serverUri = Uri.parse(normalizedServer)
+
+            if (
+                !serverUri.scheme.equals("https", ignoreCase = true) ||
+                !serverUri.host.equals(COMMUNA8_HOST, ignoreCase = true)
+            ) {
+                throw IllegalArgumentException(getString(R.string.communa8_login_untrusted_server))
+            }
+
+            stage = Communa8LoginStage.SAVING
+            destroyLoginWebView()
+
+            viewModel.setUrl(normalizedServer.toNextcloudDavUrl())
+            viewModel.setUsername(credentials.loginName)
+            viewModel.setPassword(credentials.appPassword)
+            viewModel.setServerType(CaldavAccount.SERVER_NEXTCLOUD)
+            viewModel.save {
+                setResult(Activity.RESULT_OK)
+                finish()
+            }
+        } catch (e: Exception) {
+            destroyLoginWebView()
+            flowError = e.message ?: getString(R.string.communa8_login_failed)
+            stage = Communa8LoginStage.ERROR
+        }
+
+        return true
+    }
+
+    private fun parseLoginCallback(url: String): LoginCredentials {
+        val payload = url.substringAfter(LOGIN_CALLBACK_PREFIX, missingDelimiterValue = "")
+        val match = LOGIN_CALLBACK_REGEX.matchEntire(payload)
+            ?: throw IllegalArgumentException(getString(R.string.communa8_login_bad_callback))
+
+        return LoginCredentials(
+            server = decodeLoginValue(match.groupValues[1]),
+            loginName = decodeLoginValue(match.groupValues[2]),
+            appPassword = decodeLoginValue(match.groupValues[3]),
+        )
+    }
+
+    private fun decodeLoginValue(value: String): String =
+        URLDecoder.decode(value, StandardCharsets.UTF_8.name())
+
+    private fun destroyLoginWebView() {
+        val webView = loginWebView ?: return
+        loginWebView = null
+
+        runCatching {
+            webView.stopLoading()
+            webView.loadUrl("about:blank")
+            webView.clearHistory()
+            webView.clearCache(true)
+            webView.removeAllViews()
+            webView.destroy()
+        }
+
+        runCatching {
+            WebViewDatabase.getInstance(this).clearFormData()
+            CookieManager.getInstance().removeAllCookies(null)
+            CookieManager.getInstance().flush()
+        }
+    }
 
     private data class LoginCredentials(
         val server: String,
@@ -247,24 +282,29 @@ class CaldavSignInActivity : ComponentActivity() {
         val appPassword: String,
     )
 
+    private fun String.withHttpsIfMissing(): String =
+        if (contains("://")) this else "https://$this"
+
     private fun String.toNextcloudDavUrl(): String =
         trimEnd('/') + "/remote.php/dav"
 
     companion object {
-        private const val COMMUNA8_SERVER = "https://app.communa8.org"
+        private const val COMMUNA8_HOST = "app.communa8.org"
+        private const val COMMUNA8_LOGIN_URL =
+            "https://app.communa8.org/index.php/login/flow"
         private const val USER_AGENT = "Communa8 Tasks Android"
-        private const val POLL_INTERVAL_MS = 1_000L
-        private const val POLL_ATTEMPTS = 20 * 60
+        private const val LOGIN_CALLBACK_PREFIX = "nc://login/"
+        private val LOGIN_CALLBACK_REGEX =
+            Regex("^server:(.*?)&user:(.*?)&password:(.*)$")
     }
 }
 
 @Composable
-private fun Communa8LoginScreen(
+private fun Communa8StatusScreen(
     modifier: Modifier = Modifier,
-    stage: Communa8LoginStage,
+    saving: Boolean,
     error: String?,
-    onStart: () -> Unit,
-    onCancel: () -> Unit,
+    onRetry: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -279,67 +319,26 @@ private fun Communa8LoginScreen(
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
-                text = stringResource(R.string.communa8_sign_in),
-                style = MaterialTheme.typography.headlineSmall,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            when (stage) {
-                Communa8LoginStage.READY -> {
-                    Text(
-                        text = stringResource(R.string.communa8_login_description),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(modifier = Modifier.height(28.dp))
-                    Button(
-                        onClick = onStart,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.communa8_sign_in))
-                    }
-                }
-
-                Communa8LoginStage.STARTING,
-                Communa8LoginStage.WAITING,
-                Communa8LoginStage.SAVING -> {
-                    CircularProgressIndicator()
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Text(
-                        text = stringResource(
-                            when (stage) {
-                                Communa8LoginStage.STARTING ->
-                                    R.string.communa8_login_starting
-                                Communa8LoginStage.WAITING ->
-                                    R.string.communa8_login_waiting
-                                else ->
-                                    R.string.communa8_login_saving
-                            }
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(modifier = Modifier.height(20.dp))
-                    TextButton(onClick = onCancel) {
-                        Text(stringResource(R.string.cancel))
-                    }
-                }
-
-                Communa8LoginStage.ERROR -> {
-                    Text(
-                        text = error ?: stringResource(R.string.communa8_login_failed),
-                        color = MaterialTheme.colorScheme.error,
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Button(
-                        onClick = onStart,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.communa8_try_again))
-                    }
+            if (saving) {
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.height(20.dp))
+                Text(
+                    text = stringResource(R.string.communa8_login_saving),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            } else {
+                Text(
+                    text = error ?: stringResource(R.string.communa8_login_failed),
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+                Button(
+                    onClick = onRetry,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.communa8_try_again))
                 }
             }
         }
