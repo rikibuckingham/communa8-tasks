@@ -46,14 +46,14 @@ android {
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        testApplicationId = "org.tasks.test"
+        testApplicationId = "org.communa8.tasks.test"
         applicationId = libs.versions.applicationId.get()
         versionCode = libs.versions.versionCode.get().toInt()
         versionName = libs.versions.versionName.get()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
         testInstrumentationRunner = "org.tasks.TestRunner"
-        manifestPlaceholders["appAuthRedirectScheme"] = "org.tasks"
+        manifestPlaceholders["appAuthRedirectScheme"] = "org.communa8.tasks"
     }
 
     signingConfigs {
@@ -142,6 +142,14 @@ android {
     }
 
     namespace = "org.tasks"
+}
+
+// The Communa8 Generic flavor intentionally uses the no-Firebase implementation.
+// Do not process the upstream google-services.json for org.communa8.tasks.
+tasks.matching {
+    it.name.startsWith("processGeneric") && it.name.endsWith("GoogleServices")
+}.configureEach {
+    enabled = false
 }
 
 configurations.all {

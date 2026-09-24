@@ -76,6 +76,7 @@ import org.tasks.compose.TosUpdateDialog
 import org.tasks.compose.WelcomeDestination
 import org.tasks.compose.WelcomeScreen
 import org.tasks.compose.accounts.AddAccountScreenWrapper
+import org.tasks.compose.accounts.Communa8ConnectScreen
 import org.tasks.compose.accounts.AddAccountViewModel
 import org.tasks.compose.accounts.Platform
 import org.tasks.compose.accounts.featureTitle
@@ -270,131 +271,31 @@ class MainActivity : AppCompatActivity() {
                             },
                         )
                     }
-                    composable<AddAccountDestination> { backStackEntry ->
+                    composable<AddAccountDestination> {
                         LaunchedEffect(Unit) {
                             firebase.logEvent(R.string.event_screen_add_account)
                         }
-                        val addAccountViewModel: AddAccountViewModel = hiltViewModel()
-                        val microsoftVM: MicrosoftSignInViewModel = hiltViewModel()
-                        LaunchedEffect(Unit) {
-                            addAccountViewModel.accountAdded.collect {
-                                navController.popBackStack()
-                            }
-                        }
-                        val syncLauncher =
-                            rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                                if (result.resultCode != RESULT_OK) {
-                                    result.data
-                                        ?.getStringExtra(GtasksLoginActivity.EXTRA_ERROR)
-                                        ?.let { toast(it) }
+
+                        val communa8LoginLauncher =
+                            rememberLauncherForActivityResult(
+                                ActivityResultContracts.StartActivityForResult()
+                            ) { result ->
+                                if (result.resultCode == RESULT_OK) {
+                                    // Account insertion is observed by MainActivityViewModel;
+                                    // onboarding routing will move to Home automatically.
+                                    firebase.logEvent(
+                                        R.string.event_sync_add_account,
+                                        R.string.param_type to Constants.SYNC_TYPE_CALDAV,
+                                    )
                                 }
                             }
-                        var pendingPlatform by rememberSaveable { mutableStateOf<String?>(null) }
-                        val purchased by backStackEntry.savedStateHandle
-                            .getStateFlow("purchased", false)
-                            .collectAsStateWithLifecycle()
-                        fun doSignIn(platform: Platform) {
-                            when (platform) {
-                                Platform.TASKS_ORG ->
-                                    syncLauncher.launch(
-                                        Intent(this@MainActivity, SignInActivity::class.java)
-                                    )
 
-                                Platform.GOOGLE_TASKS ->
-                                    syncLauncher.launch(
-                                        Intent(this@MainActivity, GtasksLoginActivity::class.java)
-                                    )
-
-                                Platform.MICROSOFT ->
-                                    microsoftVM.signIn(this@MainActivity)
-
-                                Platform.CALDAV ->
-                                    syncLauncher.launch(
-                                        Intent(this@MainActivity, CaldavSignInActivity::class.java)
-                                    )
-
-                                Platform.ETEBASE ->
-                                    syncLauncher.launch(
-                                        Intent(this@MainActivity, EtebaseSignInActivity::class.java)
-                                    )
-
-                                else -> throw IllegalArgumentException()
-                            }
-                        }
-                        fun doOpenUrl(platform: Platform) = openUrl(platform)
-                        fun requirePurchase(platform: Platform, nameYourPrice: Boolean = true) {
-                            pendingPlatform = platform.name
-                            navController.navigate(
-                                PurchaseDestination(
-                                    nameYourPrice = nameYourPrice,
-                                    feature = platform.featureTitle,
-                                    source = platform.name,
+                        Communa8ConnectScreen(
+                            onBack = { finish() },
+                            onSignIn = {
+                                communa8LoginLauncher.launch(
+                                    Intent(this@MainActivity, CaldavSignInActivity::class.java)
                                 )
-                            )
-                        }
-                        LaunchedEffect(purchased) {
-                            if (purchased) {
-                                backStackEntry.savedStateHandle["purchased"] = false
-                                pendingPlatform?.let { name ->
-                                    pendingPlatform = null
-                                    val platform = Platform.valueOf(name)
-                                    when (platform) {
-                                        Platform.CALDAV,
-                                        Platform.ETEBASE -> doSignIn(platform)
-                                        Platform.DAVX5 -> doOpenUrl(platform)
-                                        else -> {}
-                                    }
-                                }
-                            }
-                        }
-                        AddAccountScreenWrapper(
-                            configuration = configuration,
-                            hasTasksAccount = addAccountViewModel.hasTasksAccount,
-                            hasPro = addAccountViewModel.hasPro,
-                            needsConsent = acceptedTosVersion < currentTosVersion,
-                            onBack = { navController.popBackStack() },
-                            signIn = { platform ->
-                                firebase.logEvent(R.string.event_add_account, R.string.param_source to "onboarding", R.string.param_selection to platform)
-                                when (platform) {
-                                    Platform.TASKS_ORG -> {
-                                        if (inventory.hasTasksSubscription) {
-                                            doSignIn(platform)
-                                        } else {
-                                            syncLauncher.launch(
-                                                Intent(this@MainActivity, PurchaseActivity::class.java)
-                                                    .putExtra(PurchaseActivityViewModel.EXTRA_NAME_YOUR_PRICE, false)
-                                                    .putExtra(PurchaseActivityViewModel.EXTRA_FEATURE, Platform.TASKS_ORG.featureTitle)
-                                                    .putExtra(PurchaseActivityViewModel.EXTRA_SOURCE, Platform.TASKS_ORG.name)
-                                            )
-                                        }
-                                    }
-                                    Platform.CALDAV, Platform.ETEBASE -> {
-                                        if (inventory.hasPro) {
-                                            doSignIn(platform)
-                                        } else {
-                                            requirePurchase(platform)
-                                        }
-                                    }
-                                    else -> doSignIn(platform)
-                                }
-                            },
-                            openUrl = { platform ->
-                                firebase.logEvent(R.string.event_add_account, R.string.param_source to "onboarding", R.string.param_selection to platform.name)
-                                when (platform) {
-                                    Platform.DAVX5 -> {
-                                        if (inventory.hasPro) {
-                                            doOpenUrl(platform)
-                                        } else {
-                                            requirePurchase(platform)
-                                        }
-                                    }
-                                    else -> doOpenUrl(platform)
-                                }
-                            },
-                            openLegalUrl = { openUri(it) },
-                            onConsent = { setAcceptedTosVersion(currentTosVersion) },
-                            onNameYourPriceInfo = {
-                                firebase.logEvent(R.string.event_onboarding_name_your_price)
                             },
                         )
                     }

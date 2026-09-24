@@ -1,52 +1,137 @@
-Astrid was a popular cross-platform productivity service that was [acquired](https://web.archive.org/web/20130811052500/http://blog.astrid.com/blog/2013/05/01/yahoo-acquires-astrid/) and [discontinued](https://techcrunch.com/2013/07/06/astrid-goes-dark-august-5-goodnight-sweet-squid/) in 2013. The source code from Astrid's open source Android app serves as the basis of Tasks.
+# Communa8 Tasks
 
-[<img src="https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png"
-    alt="Get it on Google Play"
-    height="80">](https://play.google.com/store/apps/details?id=org.tasks)
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
-    alt="Get it on F-Droid"
-    height="80">](https://f-droid.org/packages/org.tasks)
+Communa8 Tasks is a Nextcloud-first task application for the Communa8 platform, based on the open-source [Tasks.org](https://github.com/tasks/tasks) project.
 
-**Desktop (alpha):** [tasks.org/download](https://tasks.org/download)
+The app is focused on direct synchronization with Communa8's Nextcloud server at `https://app.communa8.org`. Communa8 members do not need DAVx⁵, Google Tasks, Microsoft To Do, or another synchronization service for normal Communa8 task use.
 
-**Pebble:**
-[Rebble store](https://apps.rebble.io/en_US/application/69c598c0f20a0a0009e54acf) ·
-[Repebble store](https://apps.repebble.com/13e39c547aee442eb19a4755)
+## Current status
 
-Please visit [tasks.org](https://tasks.org) for end user documentation and support
+**Android foundation is working end-to-end.**
 
----
+Verified on a physical Android device:
 
-[![Donate with Bitcoin](https://img.shields.io/badge/bitcoin-donate-yellow.svg?logo=bitcoin)](https://tasks.org/docs/donate)
-[![PayPal donate button](https://img.shields.io/badge/paypal-donate-yellow.svg?logo=paypal)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=alex@tasks.org)
-[![Liberapay donate button](https://img.shields.io/liberapay/receives/tasks.svg?logo=liberapay)](https://liberapay.com/tasks/donate)
+- Communa8 Tasks installs as its own app using application ID `org.communa8.tasks`
+- Communa8 sign-in is completed inside the app
+- Nextcloud issues a revocable app-specific password; the user's normal account password is not stored by Communa8 Tasks
+- existing Nextcloud task lists appear in Communa8 Tasks
+- a task created in Communa8 Tasks syncs to Nextcloud
+- a task created in Nextcloud syncs back to Communa8 Tasks
+- the app uses its own OpenTasks provider authority instead of colliding with an installed Tasks.org app
+- Communa8 launcher branding is in place
 
-[![build](https://github.com/tasks/tasks/actions/workflows/bundle.yml/badge.svg)](https://github.com/tasks/tasks/actions/workflows/bundle.yml) [![weblate](https://hosted.weblate.org/widgets/tasks/-/android/svg-badge.svg)](https://hosted.weblate.org/engage/tasks/?utm_source=widget) 
+Shared-list read/write behavior is the next collaboration test.
 
-### Verifying release signatures
+## Architecture
 
-**Google Play (`org.tasks` on Play Store, `tasks-googleplay-*.apk` on GitHub Releases)**
+Communa8 Tasks deliberately reuses the mature Tasks.org CalDAV/VTODO implementation rather than introducing a second synchronization engine.
 
-- SHA-256: `9F:78:EE:B2:7C:90:2A:98:1B:3B:FB:51:F6:FE:78:90:49:A0:0C:C1:AA:F0:83:B4:ED:16:B9:85:4B:3D:28:83`
-- SHA-1: `B0:47:B4:F2:45:F9:9C:62:62:E2:68:85:5F:75:64:35:72:02:0B:F6`
+### Communa8 account flow
 
-**F-Droid APK (`tasks-fdroid-*.apk` on GitHub Releases, _not_ official F-Droid release)**
+The Android app uses Nextcloud's one-time Login Flow against:
 
-- SHA-256: `5E:FD:4E:D0:BA:CC:BF:D3:C1:17:98:7E:BE:AC:34:CF:60:1D:08:31:EC:4B:B3:E5:97:46:77:42:13:05:69:FD`
-- SHA-1: `4B:0D:89:62:ED:F2:39:DD:7E:9C:87:A4:BD:EB:A1:90:75:85:14:4C`
+`https://app.communa8.org/index.php/login/flow`
 
-**macOS** (`tasks-org-*-mac-*.zip` on GitHub Releases)
+The real Communa8/Nextcloud login page is displayed in a temporary in-app WebView. Password and 2FA handling remain on the Communa8 server. The app intercepts the final `nc://login/...` callback, accepts credentials only for `https://app.communa8.org`, destroys the temporary WebView state, stores the returned app password using the existing encrypted credential path, and saves the account as `SERVER_NEXTCLOUD`.
 
-- Team ID: `447244PVXH`
-- SHA-256: `49:5E:DF:DA:F2:C9:DD:F7:BF:B1:12:BA:D3:1B:EF:BB:50:2E:2E:DC:ED:3D:9A:8A:AE:86:5B:DE:F5:F6:C9:F6`
+The resulting CalDAV root is:
 
-**Linux apt repo** (`update.tasks.org`)
+`https://app.communa8.org/remote.php/dav`
 
-- Fingerprint: `224F A88A 5A19 A03B 0682 7A1B F60C E212 7D6B BBDE`
-- Public key: https://update.tasks.org/keys.asc
+### Task synchronization
 
-### Communication
+The existing Tasks.org CalDAV stack handles:
 
-You can submit questions to [GitHub Discussions](https://github.com/tasks/tasks/discussions).
+- VTODO discovery and synchronization
+- own task lists
+- Nextcloud shared task lists
+- server ownership and DAV privileges
+- read-only shared resources
+- recurring tasks and reminders where supported
+- local/offline task storage and background synchronization
 
-If you have a suggestion or want to report a bug, please see [CONTRIBUTING.md](CONTRIBUTING.md).
+The internal Kotlin/Java namespace remains `org.tasks` intentionally. The installed Android application ID is `org.communa8.tasks`.
+
+The embedded OpenTasks authority has been changed from `org.tasks.opentasks` to `org.communa8.tasks.opentasks` so Communa8 Tasks can coexist with Tasks.org on the same Android device.
+
+## Branding
+
+The visible app name is **Communa8 Tasks**.
+
+The launcher icon follows the existing Communa8 green/cream infinity-and-leaf visual family and adds a task-list/checklist symbol.
+
+Legacy Tasks.org launcher colour aliases are mapped to the single Communa8 Tasks launcher identity.
+
+## Build
+
+The currently tested Android build is the Generic debug flavor.
+
+From the repository root on Windows:
+
+```powershell
+.\gradlew.bat :app:assembleGenericDebug
+```
+
+APK output:
+
+```text
+app\build\outputs\apk\generic\debug\app-generic-debug.apk
+```
+
+To install on a connected Android device:
+
+```powershell
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb install -r .\app\build\outputs\apk\generic\debug\app-generic-debug.apk
+```
+
+The development environment used for the Windows build includes JDK 21 and Android Studio.
+
+## Windows build compatibility work
+
+The upstream multiplatform project contains Android, desktop and iOS-related code. Several changes were required to make Android development reliable from Windows:
+
+- retained upstream Gradle root project name `Tasks` because generated Compose resource packages depend on it
+- disabled Google Services processing for the Generic flavor, which uses the no-Firebase implementation
+- replaced Git locale symlinks that Windows checked out as plain files
+- removed unsupported Compose legacy locale aliases `values-in` and `values-iw` while retaining the modern `values-id` and `values-he` resources
+- converted remaining Android locale symlinks to real directories
+- made Compose compiler metrics/reports opt-in instead of forcing a Windows-invalid output path
+
+Warnings about disabled iOS native targets on Windows are expected and do not prevent the Android Generic build.
+
+## CI policy
+
+GitHub Actions is intentionally kept lightweight.
+
+The default branch uses manual/call-only workflows for normal Android builds rather than running a large automatic matrix on every push or pull request. Release/tag workflows should only be run deliberately.
+
+Local Android Studio/Gradle builds are the normal development loop.
+
+## Next work
+
+Before treating Android as release-ready:
+
+- verify a Nextcloud task list shared from another Communa8 user appears automatically
+- verify write access and read-only DAV privileges on shared lists
+- polish remaining Tasks.org-specific text/UI and remove providers/features Communa8 does not expose
+- review notification/reminder behavior
+- review backup/export and privacy-facing text
+- produce signed release builds and release metadata
+
+The codebase already contains multiplatform/iOS and desktop foundations. Communa8 Tasks for **iPhone/iPad and Windows** are required follow-on targets once the Android experience is sufficiently polished. Shared logic/UI should be reused where practical while keeping platform-specific authentication, notifications, secure storage, and packaging in the appropriate platform source sets.
+
+A future Android enhancement may use Nextcloud's official Android Single Sign-On mechanism when a compatible Communa8/Nextcloud Files account already exists on the device. The standalone in-app login remains important so Communa8 Tasks does not depend on another app being installed.
+
+## Upstream and licence
+
+Communa8 Tasks is a fork of [Tasks.org](https://github.com/tasks/tasks).
+
+Tasks.org itself grew from the open-source Astrid Android application. Copyright in upstream code remains with its respective authors and contributors.
+
+This fork is distributed under the **GNU General Public License v3.0**, consistent with the upstream project. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
+
+Communa8 Tasks is an independent fork and is not affiliated with or endorsed by the Tasks.org project.
+
+## Commercial use
+
+GPLv3 permits commercial distribution. Communa8 may charge for hosted services, accounts, support, membership, or distribution while preserving the GPLv3 rights that apply to this software and its corresponding source code.
